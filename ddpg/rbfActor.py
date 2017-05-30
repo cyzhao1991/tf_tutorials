@@ -1,8 +1,8 @@
 import numpy as np
 import tensorflow as tf
 
-class ActorNetwork(object):
-	
+class RbfActorNetwork(object):
+
 	def __init__(self, sess, state_dim, action_dim, action_bound, hidden_layer_dim = [400, 300], seed = None, tau = 0.001, learning_rate = 0.001):
 		
 		self.sess = sess
@@ -60,6 +60,14 @@ class ActorNetwork(object):
 		with tf.name_scope('actor'+name):
 
 			state = tf.placeholder(tf.float32, [None, self.state_dim], name = 'state')
+
+			rbf_mus = tf.constant(np.array([np.arange(0,5,0.1)]))
+			rbf_sign = tf.constant(-1. ,shape = tf.shape(rbf_mus))
+			rbf_sigma = tf.constant(0.3)
+
+			rbf_diff = tf.matmul(tf.expand_dims(state[:,-1],1),rbf_sign) + rbf_mus
+			
+
 
 			weights = {}
 			bias = {}
