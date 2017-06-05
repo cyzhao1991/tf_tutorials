@@ -17,23 +17,6 @@ class RbfActorNetwork(object):
 
 		self.hidden_layer_dim.insert(0, state_dim)
 
-
-		# self.state = tf.placeholder(tf.float32, [None, state_dim], name = 'state')
-		
-		# self.weights = {}
-		# self.bias = {}
-		# self.hidden_layer = {-1: self.state}
-
-	 #	for i in range(self.num_of_layer):
-	 #		tf.name_scope('actor_hidden_layer'+str(i))
-		#	 self.weights[i] = tf.Variable(tf.truncated_normal([state_dim, hidden_layer_dim[i]], stddev = 1.0), name = 'weights')
-		#	 self.bias[i] = tf.Variable(tf.truncated_normal([hidden_layer[i]], stddev = 1.0), name = 'bias')
-		#	 self.hidden_layer[i] = tf.nn.relu( tf.matmul( self.hidden_layer[i-1], self.weights[i] ) + self.bias[i] )
-		
-		# tf.name_scope('actor_hidden_layer'+str(num_of_layer))
-		# self.weights[self.num_of_layer] = tf.Variable(tf.truncated_normal([hidden_layer_dim[-1], action_dim], stddev = 1.0), name = 'weights')
-		# self.non_scaled_action = tf.matmul( self.hidden_layer[self.num_of_layer-1], self.weights[self.num_of_layer])
-		# self.action = tf.multiply( tf.nn.tanh(self.non_scaled_action), self.action_bound )
 		self.state, self.action = self.build(name = '')
 		self.target_state, self.target_action = self.build(name = '_target')
 
@@ -46,9 +29,7 @@ class RbfActorNetwork(object):
 
 		self.critic_gradient = tf.placeholder(tf.float32, [None, self.action_dim], name = 'critic_gradient')
 		self.actor_gradient = tf.gradients(self.action, self.actor_paras, grad_ys = -self.critic_gradient,name = 'actor_gradient')
-		# print tf.shape(self.actor_gradient)
-		# print tf.shape(self.critic_gradient)
-		# self.train_op = self.optimizer.apply_gradients(zip(tf.matmul(self.critic_gradient, self.actor_gradient), self.actor_paras))
+
 		self.train_op = self.optimizer.apply_gradients(zip(self.actor_gradient, self.actor_paras))
 
 		self.update_actor_paras = [target_param.assign( tf.multiply(target_param,1.-self.tau) + tf.multiply(network_param,self.tau) ) \
@@ -60,30 +41,51 @@ class RbfActorNetwork(object):
 		with tf.name_scope('actor'+name):
 
 			state = tf.placeholder(tf.float32, [None, self.state_dim], name = 'state')
+			weights_rbf = tf.Variable( tf.truncated_normal([51, 2], stddev = 1.0, seed = self.seed), name = 'weights_rbf' )
+			weights_pid = tf.Variable( tf.truncated_normal([2 * (self.state_dim - 1) , self.action_dim], stddev = 1.0, seed = self.seed), name = 'weights_pid')
 
-			rbf_mus = tf.constant(np.array([np.arange(0,5,0.1)]))
-			rbf_sign = tf.constant(-1. ,shape = tf.shape(rbf_mus))
-			rbf_sigma = tf.constant(0.3)
-
-			rbf_diff = tf.matmul(tf.expand_dims(state[:,-1],1),rbf_sign) + rbf_mus
+			rbf_mus = tf.constant(np.array([np.arange(0,5.01,0.1)]), dtype = tf.float32, name = 'mus')
+			rbf_sign = tf.constant(-1. ,shape = [1, 51], dtype = tf.float32, name = 'sign')
+			rbf_sigma = tf.constant(0.3, dtype = tf.float32, name = 'sigma')
 			
 
+			rbf_diff = tf.matmul(tf.expand_dims(state[:,-1],1),rbf_sign) + rbf_mus
+			rbf_out = tf.exp( -tf.multiply( tf.square(rbf_diff), .5/tf.square(rbf_sigma)) )
+			hidden_input = tf.matmul( rbf_out, weights_rbf )
+			desire_pos = tf.multiply( tf.nn.tanh( hidden_input ) , 5.)
 
-			weights = {}
-			bias = {}
-			hidden_layer = {-1: state}
+			rbf_diff_prev = tf.matmul(tf.expand_dims(state[:,-1],1) - 0.01, rbf_sign) + rbf_mus
+			rbf_out_prev = tf.exp( -tf.multiply( tf.square(rbf_diff_prev), .5/tf.square(rbf_sigma)) )
+			hidden_input_prev = tf.matmul( rbf_out_prev, weights_rbf )
+			desire_pos_prev = tf.multiply( tf.nn.tanh(hidden_input_prev) , 5.)
+
+			rbf_diff_next = tf.matmul(tf.expand_dims(state[:,-1],1) - 0.01, rbf_sign) + rbf_mus
+			rbf_out_next = tf.exp( -tf.multiply( tf.square(rbf_diff_next), .5/tf.square(rbf_sigma)) )
+			hidden_input_next = tf.matmul( rbf_out_next, weights_rbf )
+			desire_pos_next = tf.multiply( tf.nn.tanh(hidden_input_next) , 5.)
+
+			desire_vel = (desire_pos_next - desire_pos_prev) / (2 * 0.01)
+			hidden_input_2 = tf.concat([desire_pos, desire_vel, state[:,:-1]], axis = 1)
+			non_scaled_action = tf.matmul(hidden_input_2, weights_pid)
+			# action  = tf.multiply( tf.nn.tanh(non_scaled_action), self.action_bound )
+			action = tf.minimum(tf.maximum(non_scaled_action, -self.action_bound), self.action_bound)
+
+			# weights = {}
+			# bias = {}
+			# hidden_layer = {-1: state}
 
 
-			for i in range(self.num_of_layer):
-				weights[i] = tf.Variable(tf.truncated_normal([self.hidden_layer_dim[i], self.hidden_layer_dim[i+1]], stddev = 1.0, seed = self.seed), name = 'weights'+str(i))
-				bias[i] = tf.Variable(tf.truncated_normal([self.hidden_layer_dim[i+1]], stddev = 1.0, seed = self.seed), name = 'bias'+str(i))
-				hidden_layer[i] = tf.nn.relu( tf.matmul( hidden_layer[i-1], weights[i] ) + bias[i] )
+			# for i in range(self.num_of_layer):
+			# 	weights[i] = tf.Variable(tf.truncated_normal([self.hidden_layer_dim[i], self.hidden_layer_dim[i+1]], stddev = 1.0, seed = self.seed), name = 'weights'+str(i))
+			# 	bias[i] = tf.Variable(tf.truncated_normal([self.hidden_layer_dim[i+1]], stddev = 1.0, seed = self.seed), name = 'bias'+str(i))
+			# 	hidden_layer[i] = tf.nn.relu( tf.matmul( hidden_layer[i-1], weights[i] ) + bias[i] )
 
-			weights[self.num_of_layer] = tf.Variable(tf.truncated_normal([self.hidden_layer_dim[-1], self.action_dim], stddev = 0.003, seed = self.seed), name = 'weights'+str(self.num_of_layer))
-			non_scaled_action = tf.matmul( hidden_layer[self.num_of_layer-1], weights[self.num_of_layer] )
-			action = tf.multiply( tf.nn.tanh(non_scaled_action), self.action_bound )
+			# weights[self.num_of_layer] = tf.Variable(tf.truncated_normal([self.hidden_layer_dim[-1], self.action_dim], stddev = 0.003, seed = self.seed), name = 'weights'+str(self.num_of_layer))
+			# non_scaled_action = tf.matmul( hidden_layer[self.num_of_layer-1], weights[self.num_of_layer] )
+			# action = tf.multiply( tf.nn.tanh(non_scaled_action), self.action_bound )
 
 			return state, action
+
 
 	def train(self, inputs_state, critic_gradient):
 		return self.sess.run(self.train_op, feed_dict = {self.state: inputs_state, self.critic_gradient: critic_gradient})

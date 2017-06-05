@@ -18,22 +18,6 @@ class ActorNetwork(object):
 		self.hidden_layer_dim.insert(0, state_dim)
 
 
-		# self.state = tf.placeholder(tf.float32, [None, state_dim], name = 'state')
-		
-		# self.weights = {}
-		# self.bias = {}
-		# self.hidden_layer = {-1: self.state}
-
-	 #	for i in range(self.num_of_layer):
-	 #		tf.name_scope('actor_hidden_layer'+str(i))
-		#	 self.weights[i] = tf.Variable(tf.truncated_normal([state_dim, hidden_layer_dim[i]], stddev = 1.0), name = 'weights')
-		#	 self.bias[i] = tf.Variable(tf.truncated_normal([hidden_layer[i]], stddev = 1.0), name = 'bias')
-		#	 self.hidden_layer[i] = tf.nn.relu( tf.matmul( self.hidden_layer[i-1], self.weights[i] ) + self.bias[i] )
-		
-		# tf.name_scope('actor_hidden_layer'+str(num_of_layer))
-		# self.weights[self.num_of_layer] = tf.Variable(tf.truncated_normal([hidden_layer_dim[-1], action_dim], stddev = 1.0), name = 'weights')
-		# self.non_scaled_action = tf.matmul( self.hidden_layer[self.num_of_layer-1], self.weights[self.num_of_layer])
-		# self.action = tf.multiply( tf.nn.tanh(self.non_scaled_action), self.action_bound )
 		self.state, self.action = self.build(name = '')
 		self.target_state, self.target_action = self.build(name = '_target')
 
@@ -46,9 +30,6 @@ class ActorNetwork(object):
 
 		self.critic_gradient = tf.placeholder(tf.float32, [None, self.action_dim], name = 'critic_gradient')
 		self.actor_gradient = tf.gradients(self.action, self.actor_paras, grad_ys = -self.critic_gradient,name = 'actor_gradient')
-		# print tf.shape(self.actor_gradient)
-		# print tf.shape(self.critic_gradient)
-		# self.train_op = self.optimizer.apply_gradients(zip(tf.matmul(self.critic_gradient, self.actor_gradient), self.actor_paras))
 		self.train_op = self.optimizer.apply_gradients(zip(self.actor_gradient, self.actor_paras))
 
 		self.update_actor_paras = [target_param.assign( tf.multiply(target_param,1.-self.tau) + tf.multiply(network_param,self.tau) ) \
@@ -64,7 +45,6 @@ class ActorNetwork(object):
 			weights = {}
 			bias = {}
 			hidden_layer = {-1: state}
-
 
 			for i in range(self.num_of_layer):
 				weights[i] = tf.Variable(tf.truncated_normal([self.hidden_layer_dim[i], self.hidden_layer_dim[i+1]], stddev = 1.0, seed = self.seed), name = 'weights'+str(i))

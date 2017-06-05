@@ -7,7 +7,7 @@ from gym.utils import seeding
 
 class ReachingEnv():
 
-	def __init__(self, include_t = False):
+	def __init__(self, include_t = False, target_state = [2., 2., 0., 0.]):
 
 		self.gravity = 9.8
 		self.length = 0.5 # actually half the pole's length
@@ -15,7 +15,8 @@ class ReachingEnv():
 		self.dt = 0.02  # seconds between state updates
 		self.max_obs = 5.
 		self.action_space = spaces.Box(low = -self.max_force, high = self.max_force, shape = (2,))
-		self.goal_state = np.array([2., 2., 0., 0.])
+		self.goal_state = np.array(target_state)
+
 		self.seed()
 		self.t = 0.
 		self.include_t = include_t
@@ -24,6 +25,9 @@ class ReachingEnv():
 		else:
 			self.observation_space = spaces.Box(-self.max_obs, self.max_obs, shape = (4,))
 
+	def set_goal(self, target_state):
+		self.goal_state = target_state
+		return target_state
 
 	def seed(self, seed = None):
 		self.np_random, seed = seeding.np_random(seed)
