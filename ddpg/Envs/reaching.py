@@ -47,6 +47,8 @@ class ReachingEnv():
 		reward = - np.linalg.norm(diff) ** 2/16 if np.linalg.norm(diff) < 4 else -1
 		self.t = self.t + self.dt
 
+		
+
 		return self.get_obs(), reward, done, {}
 
 
