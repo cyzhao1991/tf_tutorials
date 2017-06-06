@@ -16,7 +16,7 @@ class ThrowingEnv():
 		self.action_space = spaces.Box(low = -self.max_force, high = self.max_force, shape = (2,))
 		# self.goal_state = np.array(target_state)
 		self.target_pos = target_pos
-		self.release_time = 3.
+		self.release_time = 2.
 		self.seed()
 		self.t = 0.
 		self.include_t = include_t
@@ -65,6 +65,7 @@ class ThrowingEnv():
 
 
 			if newy_b < self.target_pos[-1]:
+				print('something')
 				done = True
 				reward = 16 - (newx_b - self.target_pos[0]) ** 2 if np.abs(newx_b - self.target_pos[0]) < 4 else 0 
 				return self.get_obs(), reward, done, {}
