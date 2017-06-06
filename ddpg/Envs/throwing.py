@@ -51,7 +51,7 @@ class ThrowingEnv():
 
 			if newy < self.target_pos[-1]:
 				done = True
-				reward = -32
+				reward = -10
 				return self.get_obs(),reward,done,{}
 		else:
 
@@ -66,7 +66,7 @@ class ThrowingEnv():
 
 			if newy_b < self.target_pos[-1]:
 				done = True
-				reward = -(newx_b - self.target_pos[0]) ** 2 if np.abs(newx_b - self.target_pos[0]) < 4 else -16
+				reward = 16 - (newx_b - self.target_pos[0]) ** 2 if np.abs(newx_b - self.target_pos[0]) < 4 else 0 
 				return self.get_obs(), reward, done, {}
 			else:
 				done = False
