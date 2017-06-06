@@ -48,12 +48,12 @@ class ThrowingEnv():
 			reward = 0
 			done = False
 			return self.get_obs(), reward, done, {}
-		else:
 
-			if newy_b < self.target_pos[-1]:
+			if newy < self.target_pos[-1]:
 				done = True
 				reward = -32
-
+				return self.get_obs(),reward,done,{}
+		else:
 
 			xddot_b, yddot_b = 0., self.gravity
 			newx_b = x_b + self.dt*xdot_b
@@ -61,6 +61,9 @@ class ThrowingEnv():
 			newxdot_b = xdot_b + self.dt*xddot_b
 			newydot_b = ydot_b + self.dt*yddot_b
 			self.ball_state = np.array([newx_b, newy_b, newxdot_b, newydot_b])
+
+
+
 			if newy_b < self.target_pos[-1]:
 				done = True
 				reward = -(newx_b - self.target_pos[0]) ** 2 if np.abs(newx_b - self.target_pos[0]) < 4 else -16
