@@ -16,7 +16,10 @@ class ThrowingEnv():
 		self.action_space = spaces.Box(low = -self.max_force, high = self.max_force, shape = (2,))
 		# self.goal_state = np.array(target_state)
 		self.target_pos = target_pos
-		self.release_time = 2.
+		self.target_state = np.array([0.,0.,0.,0.])
+
+
+		self.release_time = 1.
 		self.seed()
 		self.t = 0.
 		self.include_t = include_t
@@ -43,6 +46,10 @@ class ThrowingEnv():
 		self.state = np.array([newx,newy,newxdot,newydot])
 		self.t = self.t + self.dt
 
+		# diff = np.abs(self.state[0:4] - self.goal_state[0:4])
+		# done = bool((diff<0.05).all())
+		# reward = - np.linalg.norm(diff) ** 2/16 if np.linalg.norm(diff) < 4 else -1
+
 		if self.t < self.release_time:
 			self.ball_state = self.state
 			reward = 0
@@ -54,7 +61,7 @@ class ThrowingEnv():
 				reward = -10
 				return self.get_obs(),reward,done,{}
 		else:
-
+	
 			xddot_b, yddot_b = 0., self.gravity
 			newx_b = x_b + self.dt*xdot_b
 			newy_b = y_b + self.dt*ydot_b
@@ -62,12 +69,10 @@ class ThrowingEnv():
 			newydot_b = ydot_b + self.dt*yddot_b
 			self.ball_state = np.array([newx_b, newy_b, newxdot_b, newydot_b])
 
-
-
 			if newy_b < self.target_pos[-1]:
-				print('something')
+				print('')
 				done = True
-				reward = 16 - (newx_b - self.target_pos[0]) ** 2 if np.abs(newx_b - self.target_pos[0]) < 4 else 0 
+				reward = (100 - (newx_b - self.target_pos[0]) ** 2) if np.abs(newx_b - self.target_pos[0]) < 10 else 0
 				return self.get_obs(), reward, done, {}
 			else:
 				done = False

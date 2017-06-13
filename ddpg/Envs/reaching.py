@@ -43,11 +43,14 @@ class ReachingEnv():
 
 		self.state = np.array([newx,newy,newxdot,newydot])
 		diff = np.abs(self.state[0:4] - self.goal_state[0:4])
-		done = bool((diff<0.05).all())
+		done = bool((diff<0.2).all())
 		reward = - np.linalg.norm(diff) ** 2/16 if np.linalg.norm(diff) < 4 else -1
 		self.t = self.t + self.dt
 
-		
+		self.state = np.maximum( np.minimum(self.state, self.max_obs), -self.max_obs )
+
+		if done:
+			print 'done'
 
 		return self.get_obs(), reward, done, {}
 
