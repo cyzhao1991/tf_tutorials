@@ -25,7 +25,10 @@ class CriticNetwork(object):
 		self.l2_loss = tf.add_n( [tf.nn.l2_loss(v) for v in self.critic_paras if 'weights' in v.name] )
 		self.loss = tf.losses.mean_squared_error( self.training_q, self.q_value ) + self.l2_alpha * self.l2_loss
 		self.optimizer = tf.train.AdamOptimizer(learning_rate = learning_rate, name = 'critic_adam')
-		self.train_op = self.optimizer.minimize(self.loss)
+
+		self.gradient_tmp = tf.gradients(self.loss, self.critic_paras, name = 'gradient_tmp')
+		self.train_op = self.optimizer.apply_gradients(zip(self.gradient_tmp, self.critic_paras))
+		# self.train_op = self.optimizer.minimize(self.loss)
 
 		self.update_critic_paras = [target_param.assign( tf.multiply(target_param,1.-self.tau) + tf.multiply(network_param,self.tau) ) \
 			for target_param, network_param in zip(self.target_critic_paras, self.critic_paras) ]
